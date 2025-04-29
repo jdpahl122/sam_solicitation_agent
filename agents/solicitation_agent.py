@@ -3,11 +3,11 @@ from tasks.preprocess_task import PreprocessTask
 from rag.faiss_store import FaissStore
 
 class SolicitationAgent:
-    def __init__(self, config):
+    def __init__(self, config, store: FaissStore):
         self.api_key = config["SAM_API_KEY"]
         self.pull_task = PullSolicitationsTask(self.api_key)
         self.preprocess_task = PreprocessTask()
-        self.store = FaissStore()
+        self.store = store
 
     def run(self):
         print("🔍 Pulling solicitations...")

@@ -17,6 +17,7 @@ class FaissStore:
             self.index = FAISS.load_local(
                 self.persist_dir,
                 embeddings=self.embed_model,
+                allow_dangerous_deserialization=True
             )
         else:
             print("📄 No existing FAISS index found — starting fresh.")
