@@ -1,2 +1,4 @@
 .env
 prompts/rerank_prompt.txt
+index.faiss
+index.pkl
