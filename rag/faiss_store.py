@@ -14,7 +14,10 @@ class FaissStore:
     def _load_or_create_index(self):
         if os.path.exists(os.path.join(self.persist_dir, "index.faiss")):
             print(f"📂 Loading FAISS index from '{self.persist_dir}'")
-            self.index = FAISS.load_local(self.persist_dir, embeddings=self.embed_model)
+            self.index = FAISS.load_local(
+                self.persist_dir,
+                embeddings=self.embed_model,
+            )
         else:
             print("📄 No existing FAISS index found — starting fresh.")
             self.index = None
