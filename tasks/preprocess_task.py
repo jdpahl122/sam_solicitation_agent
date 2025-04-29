@@ -11,8 +11,15 @@ class PreprocessTask(BaseTask):
             link = opp.get("uiLink", "")
             naics = opp.get("naicsCode", "Unknown")
             setaside = opp.get("typeOfSetAsideDescription", "None")
+            notice_id = opp.get("noticeId", "Unknown")
 
-            text = f"{title}\n\nSolicitation Number: {solicitation_number}\nNAICS: {naics}\nSet-Aside: {setaside}\n\n{description}"
+            text = (
+                f"{title}\n\n"
+                f"Solicitation Number: {solicitation_number}\n"
+                f"NAICS: {naics}\n"
+                f"Set-Aside: {setaside}\n\n"
+                f"{description}"
+            )
 
             metadata = {
                 "title": title,
@@ -21,6 +28,7 @@ class PreprocessTask(BaseTask):
                 "naics": naics,
                 "setaside": setaside,
                 "posted_date": opp.get("postedDate", "Unknown"),
+                "notice_id": notice_id,
             }
 
             processed_docs.append({

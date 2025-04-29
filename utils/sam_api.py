@@ -7,7 +7,7 @@ class SamAPIClient:
     def __init__(self, api_key):
         self.api_key = api_key
 
-    def search_opportunities(self, title=None, ptype=None, ncode=None, posted_from=None, posted_to=None, limit=100, max_pages=1000):
+    def search_opportunities(self, title=None, ptype=None, ncode=None, posted_from=None, posted_to=None, limit=100, max_pages=2000):
         if not posted_from:
             posted_from = (datetime.now() - timedelta(days=30)).strftime("%m/%d/%Y")
         if not posted_to:
