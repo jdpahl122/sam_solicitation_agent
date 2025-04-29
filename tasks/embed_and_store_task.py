@@ -1,0 +1,1 @@
+# Task to embed solicitation documents and store in Chroma
