@@ -30,4 +30,4 @@ class SamAPIClient:
         response = requests.get(self.BASE_URL, params=params)
         response.raise_for_status()
         data = response.json()
-        return data.get("data", [])
+        return data.get("opportunitiesData", [])
