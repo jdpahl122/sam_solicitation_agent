@@ -3,20 +3,14 @@ from langchain.prompts import PromptTemplate
 from langchain.llms import Ollama
 from langchain_core.runnables import RunnableSequence
 
-
 class RerankChain(BaseChain):
-    def __init__(self):
+    def __init__(self, config):
         self.llm = Ollama(model="llama3")
+
 
         self.prompt = PromptTemplate(
             input_variables=["query", "documents"],
-            template=(
-                "You are an expert federal contracting assistant for a Service-Disabled Veteran-Owned Small Business (SDVOSB) in technology.\n\n"
-                "Query:\n{query}\n\n"
-                "Opportunities:\n{documents}\n\n"
-                "Based on relevance and SDVOSB eligibility, rank and return the TOP 5 best-fit solicitations. "
-                "For each, return:\n- Title\n- Solicitation Number\n- One-line justification"
-            )
+            template=config["RERANK_PROMPT_TEMPLATE"],
         )
 
         self.chain = self.prompt | self.llm

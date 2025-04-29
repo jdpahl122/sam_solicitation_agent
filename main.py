@@ -13,7 +13,7 @@ def main():
     search_chain = SemanticSearchChain(agent.store.index)
     results = search_chain.execute("AI contracting work for a small business")
 
-    rerank_chain = RerankChain()
+    rerank_chain = RerankChain(config)
     top_5 = rerank_chain.execute("AI contracting work for a small business", results)
 
     print("\n✅ Top Recommended Opportunities:\n")
