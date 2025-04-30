@@ -90,6 +90,7 @@ python main.py --mode rerank --query "AI contracting work for a small business"
 python main.py --mode ingest
 python main.py --mode search --query "Cybersecurity support for government agencies"
 python main.py --mode rerank --query "Cybersecurity support for government agencies"
+python solicitation_overview.py 02aa3325308f491d959ba968898accd6
 ```
 
 
