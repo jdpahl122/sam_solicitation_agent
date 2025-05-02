@@ -4,6 +4,7 @@ from agents.solicitation_agent import SolicitationAgent
 from chains.semantic_search_chain import SemanticSearchChain
 from chains.rerank_chain import RerankChain
 from rag.faiss_store import FaissStore
+from llm import LlamaRAG
 
 def ingest(config, store):
     agent = SolicitationAgent(config, store)
@@ -23,10 +24,16 @@ def rerank(store, query):
     print("\n✅ Top Recommended Opportunities:\n")
     print(top_5)
 
+def run_rag(query, api_key):
+    rag = LlamaRAG("vector_store", api_key=api_key)
+    response = rag.generate_response(query)
+    print("\n📄 RAG-Enhanced Response:\n")
+    print(response)
+
 def main():
     parser = argparse.ArgumentParser(description="SAM Solicitation Agent CLI")
-    parser.add_argument("--mode", choices=["ingest", "search", "rerank"], required=True, help="Mode to run")
-    parser.add_argument("--query", type=str, help="Search query (required for search/rerank)")
+    parser.add_argument("--mode", choices=["ingest", "search", "rerank", "rag"], required=True, help="Mode to run")
+    parser.add_argument("--query", type=str, help="Search query (required for search/rerank/rag)")
 
     args = parser.parse_args()
 
@@ -57,6 +64,12 @@ def main():
             print("❌ --query is required for rerank mode.")
             return
         rerank(store, args.query)
+
+    elif args.mode == "rag":
+        if not args.query:
+            print("❌ --query is required for rag mode.")
+            return
+        run_rag(args.query, config["LLAMA_API_KEY"])
 
 if __name__ == "__main__":
     main()

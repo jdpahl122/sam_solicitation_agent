@@ -6,5 +6,6 @@ def load_env():
     config = {
         "SAM_API_KEY": os.getenv("SAM_API_KEY"),
         "RERANK_PROMPT_TEMPLATE": os.getenv("RERANK_PROMPT_TEMPLATE"),
+        "LLAMA_API_KEY": os.getenv("LLAMA_API_KEY"),
     }
     return config

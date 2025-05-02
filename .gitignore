@@ -1,4 +1,4 @@
 .env
-prompts/rerank_prompt.txt
+prompts/*.txt
 index.faiss
 index.pkl
