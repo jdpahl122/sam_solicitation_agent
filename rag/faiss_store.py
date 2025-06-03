@@ -21,7 +21,11 @@ class FaissStore:
             )
         else:
             print("📄 No existing FAISS index found — starting fresh.")
-            self.index = None
+            os.makedirs(self.persist_dir, exist_ok=True)
+            # Create an empty FAISS index so other components can interact
+            # without raising AttributeError when no documents have been
+            # ingested yet.
+            self.index = FAISS.from_texts([], embedding=self.embed_model)
 
     def add_documents(self, docs_with_metadata):
         """
