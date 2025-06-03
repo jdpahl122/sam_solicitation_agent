@@ -10,10 +10,13 @@ def ingest(config, store):
     agent = SolicitationAgent(config, store)
     agent.run()
 
-def search(store, query):
+def search(store, query, k=20, setasides=None):
     search_chain = SemanticSearchChain(store.index)
-    results = search_chain.execute(query)
-    return results
+    results = search_chain.execute(query, k=k)
+    if setasides:
+        allowed = {sa.lower() for sa in setasides}
+        results = [d for d in results if d.metadata.get("setaside", "").lower() in allowed]
+    return results[:k]
 
 def rerank(store, query):
     search_chain = SemanticSearchChain(store.index)
@@ -24,9 +27,22 @@ def rerank(store, query):
     print("\n✅ Top Recommended Opportunities:\n")
     print(top_5)
 
-def run_rag(query, api_key):
+def run_rag(query, api_key, setasides=None, k=20):
     rag = LlamaRAG("vector_store", api_key=api_key)
-    response = rag.generate_response(query)
+    docs = rag.retrieve_docs(query, k=k, setasides=setasides)
+    print(f"\n✅ Top {len(docs)} Results:\n")
+    for i, doc in enumerate(docs, 1):
+        meta = doc.metadata
+        print(f"--- [{i}] ---")
+        print(f"Title: {meta.get('title')}")
+        print(f"Solicitation #: {meta.get('solicitation_number')}")
+        print(f"Posted: {meta.get('posted_date')}")
+        print(f"Link: {meta.get('link')}")
+        print(f"NAICS: {meta.get('naics')}")
+        print(f"Set-Aside: {meta.get('setaside')}")
+        print()
+
+    response = rag.generate_response(query, k=k, setasides=setasides)
     print("\n📄 RAG-Enhanced Response:\n")
     print(response)
 
@@ -34,8 +50,16 @@ def main():
     parser = argparse.ArgumentParser(description="SAM Solicitation Agent CLI")
     parser.add_argument("--mode", choices=["ingest", "search", "rerank", "rag"], required=True, help="Mode to run")
     parser.add_argument("--query", type=str, help="Search query (required for search/rerank/rag)")
+    parser.add_argument(
+        "--setaside",
+        type=str,
+        help="Comma-separated list of set-asides to filter results",
+    )
 
     args = parser.parse_args()
+    setaside_list = None
+    if args.setaside:
+        setaside_list = [s.strip() for s in args.setaside.split(',') if s.strip()]
 
     config = load_env()
     store = FaissStore()
@@ -47,13 +71,14 @@ def main():
         if not args.query:
             print("❌ --query is required for search mode.")
             return
-        results = search(store, args.query)
+        results = search(store, args.query, k=20, setasides=setaside_list)
         print(f"\n✅ Top {len(results)} Search Results:\n")
         for i, doc in enumerate(results, 1):
             meta = doc.metadata
             print(f"--- [{i}] ---")
             print(f"Title: {meta.get('title')}")
             print(f"Solicitation #: {meta.get('solicitation_number')}")
+            print(f"Posted: {meta.get('posted_date')}")
             print(f"Link: {meta.get('link')}")
             print(f"NAICS: {meta.get('naics')}")
             print(f"Set-Aside: {meta.get('setaside')}")
@@ -69,7 +94,7 @@ def main():
         if not args.query:
             print("❌ --query is required for rag mode.")
             return
-        run_rag(args.query, config["LLAMA_API_KEY"])
+        run_rag(args.query, config["LLAMA_API_KEY"], setasides=setaside_list, k=20)
 
 if __name__ == "__main__":
     main()

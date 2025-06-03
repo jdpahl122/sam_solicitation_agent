@@ -14,12 +14,20 @@ class LlamaRAG:
         )
         self.prompt_template = load_prompt("rag_prompt.txt")
 
-    def retrieve_context(self, query, k=10):
-        docs = self.vectorstore.similarity_search(query, k=k)
-        return "\n\n".join([doc.page_content for doc in docs])
+    def retrieve_docs(self, query, k=10, setasides=None):
+        """Retrieve documents matching the query and optional set-aside filter."""
+        docs = self.vectorstore.similarity_search(query, k=k * 2)
+        if setasides:
+            allowed = {sa.lower() for sa in setasides}
+            docs = [d for d in docs if d.metadata.get("setaside", "").lower() in allowed]
+        return docs[:k]
 
-    def generate_response(self, query):
-        context = self.retrieve_context(query)
+    def retrieve_context(self, query, k=10, setasides=None):
+        docs = self.retrieve_docs(query, k=k, setasides=setasides)
+        return "\n\n".join([doc.page_content for doc in docs]), docs
+
+    def generate_response(self, query, k=10, setasides=None):
+        context, _ = self.retrieve_context(query, k=k, setasides=setasides)
         prompt = self.prompt_template.format(query=query, context=context)
 
         completion = self.llm_client.chat.completions.create(
