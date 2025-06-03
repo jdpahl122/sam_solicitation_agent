@@ -36,14 +36,18 @@ Create a `.env` file:
 
 ```dotenv
 SAM_API_KEY=your-sam-api-key-here
+# Optional: API key for the Llama RAG mode
+LLAMA_API_KEY=your-ollama-key-here
 ```
 
-Make sure your `.env` file contains your **SAM.gov public API key**.
+The agent requires your **SAM.gov API key**. The `LLAMA_API_KEY` is only needed
+for the optional RAG mode and solicitation overview script.
 
 
 ## Usage
 
-The CLI is modular — you can **ingest**, **search**, or **rerank** independently:
+The CLI is modular — you can **ingest**, **search**, **rerank** or use a simple
+**RAG** mode independently:
 
 ### 1. Ingest Opportunities
 
@@ -63,6 +67,22 @@ python main.py --mode search --query "AI contracting work for a small business"
 python main.py --mode rerank --query "AI contracting work for a small business"
 ```
 
+### 4. RAG Mode
+
+Use a lightweight Retrieval-Augmented Generation mode. Requires `LLAMA_API_KEY`.
+
+```bash
+python main.py --mode rag --query "Explain AI contract opportunities in cyber"
+```
+
+### 5. Solicitation Overview
+
+Summarize a single solicitation by its notice ID:
+
+```bash
+python solicitation_overview.py <notice_id>
+```
+
 
 ## Architecture
 
@@ -74,6 +94,15 @@ python main.py --mode rerank --query "AI contracting work for a small business"
 | `rag/faiss_store.py` | Persistent FAISS vector DB |
 | `tasks/` | Modular task units (pull, preprocess, search) |
 | `prompts/` | Rerank prompt templates |
+| `tests/` | Unit tests |
+
+## Testing
+
+Run the small test suite with:
+
+```bash
+pipenv run pytest -q
+```
 
 
 ## Future Upgrades
