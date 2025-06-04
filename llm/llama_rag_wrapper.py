@@ -2,6 +2,7 @@ from llama_api_client import LlamaAPIClient
 from langchain_community.vectorstores import FAISS
 from langchain_ollama.embeddings import OllamaEmbeddings
 from utils.prompt_loader import load_prompt
+from utils.rag_helpers import filter_valid_opportunities
 
 class LlamaRAG:
     def __init__(self, vectorstore_path="vector_store", api_key=None):
@@ -16,7 +17,7 @@ class LlamaRAG:
 
     def retrieve_docs(self, query, k=10, setasides=None, naics_codes=None):
         """Retrieve documents matching the query with optional filters."""
-        docs = self.vectorstore.similarity_search(query, k=k * 2)
+        docs = self.vectorstore.similarity_search(query, k=k * 4)
 
         if setasides:
             allowed_setaside = {sa.lower() for sa in setasides}
@@ -26,7 +27,21 @@ class LlamaRAG:
             allowed_naics = {code.strip() for code in naics_codes}
             docs = [d for d in docs if d.metadata.get("naics") in allowed_naics]
 
-        return docs[:k]
+        # Apply filtering based on notice type and deadline
+        filtered = []
+        for d in docs:
+            meta = d.metadata
+            if filter_valid_opportunities([
+                {
+                    "noticeType": meta.get("notice_type"),
+                    "responseDeadLine": meta.get("response_deadline"),
+                }
+            ]):
+                filtered.append(d)
+            if len(filtered) >= k:
+                break
+
+        return filtered[:k]
 
     def retrieve_context(self, query, k=10, setasides=None, naics_codes=None):
         docs = self.retrieve_docs(query, k=k, setasides=setasides, naics_codes=naics_codes)
