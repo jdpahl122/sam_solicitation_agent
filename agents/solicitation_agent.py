@@ -27,5 +27,5 @@ class SolicitationAgent:
             return
 
         print("🧠 Embedding and storing in FAISS...")
-        self.store.add_documents(processed_docs)
-        print("✅ Stored documents in FAISS.")
+        self.store.overwrite_documents(processed_docs)
+        print("✅ Stored active solicitations in FAISS.")

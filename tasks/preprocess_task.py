@@ -5,6 +5,21 @@ class PreprocessTask(BaseTask):
         processed_docs = []
 
         for opp in opportunities:
+            # Skip inactive or archived opportunities when possible
+            archive_date = opp.get("archiveDate")
+            if archive_date:
+                try:
+                    from datetime import datetime
+
+                    ad = datetime.strptime(archive_date, "%m/%d/%Y")
+                    if ad < datetime.now():
+                        continue
+                except Exception:
+                    pass
+
+            if opp.get("active") is False:
+                continue
+
             description = opp.get("description") or ""
             title = opp.get("title", "Untitled")
             solicitation_number = opp.get("solicitationNumber", "Unknown")
