@@ -48,3 +48,16 @@ class FaissStore:
 
         print(f"💾 Saving FAISS index to '{self.persist_dir}'")
         self.index.save_local(self.persist_dir)
+
+    def overwrite_documents(self, docs_with_metadata):
+        """Replace the existing FAISS index with new documents."""
+        print(f"🧹 Clearing old index and storing {len(docs_with_metadata)} active documents...")
+
+        texts = [doc['text'] for doc in docs_with_metadata]
+        metadatas = [doc['metadata'] for doc in docs_with_metadata]
+
+        os.makedirs(self.persist_dir, exist_ok=True)
+        self.index = FAISS.from_texts(texts, embedding=self.embed_model, metadatas=metadatas)
+
+        print(f"💾 Saving FAISS index to '{self.persist_dir}'")
+        self.index.save_local(self.persist_dir)

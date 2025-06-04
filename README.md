@@ -17,6 +17,7 @@ Built using LangChain, Ollama, and FAISS vector storage.
 - Parallel ingestion for faster pulls from SAM.gov
 - Automatically initializes the FAISS index if none exists
 - Posted dates displayed in search and RAG results
+- Cleans old vector data so only active solicitations remain
 
 
 ## Requirements
@@ -60,7 +61,8 @@ from rag.faiss_store import FaissStore
 store = FaissStore()
 ```
 
-Then run the ingest mode to populate it:
+Then run the ingest mode to populate it. Each run now clears any existing
+documents so only active solicitations remain:
 
 ```bash
 pipenv run python main.py --mode ingest
@@ -75,7 +77,7 @@ ingest mode.
 The CLI is modular — you can **ingest**, **search**, **rerank** or use a simple
 **RAG** mode independently:
 
-### 1. Ingest Opportunities
+### 1. Ingest Opportunities (clears old entries)
 
 ```bash
 pipenv run python main.py --mode ingest
