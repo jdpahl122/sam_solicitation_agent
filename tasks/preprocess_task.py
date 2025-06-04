@@ -1,7 +1,10 @@
 from .base_task import BaseTask
+from utils.rag_helpers import filter_valid_opportunities
 
 class PreprocessTask(BaseTask):
     def execute(self, opportunities):
+        # Filter out invalid/expired opportunities before embedding
+        opportunities = filter_valid_opportunities(opportunities)
         processed_docs = []
 
         for opp in opportunities:
@@ -21,6 +24,7 @@ class PreprocessTask(BaseTask):
                 continue
 
             description = opp.get("description") or ""
+            attachments_text = opp.get("attachmentText") or ""
             title = opp.get("title", "Untitled")
             solicitation_number = opp.get("solicitationNumber", "Unknown")
             link = opp.get("uiLink", "")
@@ -28,13 +32,7 @@ class PreprocessTask(BaseTask):
             setaside = opp.get("typeOfSetAsideDescription", "None")
             notice_id = opp.get("noticeId", "Unknown")
 
-            text = (
-                f"{title}\n\n"
-                f"Solicitation Number: {solicitation_number}\n"
-                f"NAICS: {naics}\n"
-                f"Set-Aside: {setaside}\n\n"
-                f"{description}"
-            )
+            text = f"{description}\n\n{attachments_text}".strip()
 
             metadata = {
                 "title": title,
@@ -44,6 +42,8 @@ class PreprocessTask(BaseTask):
                 "setaside": setaside,
                 "posted_date": opp.get("postedDate", "Unknown"),
                 "notice_id": notice_id,
+                "notice_type": opp.get("noticeType"),
+                "response_deadline": opp.get("responseDeadLine"),
             }
 
             processed_docs.append({
