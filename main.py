@@ -45,6 +45,10 @@ def run_rag(query, api_key, setasides=None, naics_codes=None, k=20):
         print(f"Set-Aside: {meta.get('setaside')}")
         print()
 
+    if not docs:
+        print("⚠️ No matching solicitations found. Try running the ingest command first.")
+        return
+
     response = rag.generate_response(query, k=k, setasides=setasides, naics_codes=naics_codes)
     print("\n📄 RAG-Enhanced Response:\n")
     print(response)
