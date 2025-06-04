@@ -12,6 +12,11 @@ Built using LangChain, Ollama, and FAISS vector storage.
 - Intelligent reranking of results based on your company qualifications
 - Modular architecture: ingestion chain, search chain, rerank chain
 - CLI interface for flexible operation (`ingest`, `search`, `rerank`)
+- Retrieval-Augmented Generation (RAG) mode for conversational answers
+- Set-aside filtering and top-N result limiting
+- Parallel ingestion for faster pulls from SAM.gov
+- Automatically initializes the FAISS index if none exists
+- Posted dates displayed in search and RAG results
 
 
 ## Requirements
@@ -43,6 +48,27 @@ LLAMA_API_KEY=your-ollama-key-here
 The agent requires your **SAM.gov API key**. The `LLAMA_API_KEY` is only needed
 for the optional RAG mode and solicitation overview script.
 
+## Initializing the FAISS Store
+
+Instantiate `FaissStore` to create or load the vector index in `./vector_store`.
+If the files are missing or corrupted they will be recreated automatically:
+
+```python
+from rag.faiss_store import FaissStore
+
+# creates ./vector_store/index.faiss on first run
+store = FaissStore()
+```
+
+Then run the ingest mode to populate it:
+
+```bash
+python main.py --mode ingest
+```
+
+The index will persist for future searches and RAG responses. If you encounter
+errors loading the store, delete the `vector_store` directory and rerun the
+ingest mode.
 
 ## Usage
 

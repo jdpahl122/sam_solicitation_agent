@@ -12,20 +12,25 @@ class FaissStore:
         self._load_or_create_index()
 
     def _load_or_create_index(self):
-        if os.path.exists(os.path.join(self.persist_dir, "index.faiss")):
-            print(f"📂 Loading FAISS index from '{self.persist_dir}'")
-            self.index = FAISS.load_local(
-                self.persist_dir,
-                embeddings=self.embed_model,
-                allow_dangerous_deserialization=True
-            )
-        else:
-            print("📄 No existing FAISS index found — starting fresh.")
-            os.makedirs(self.persist_dir, exist_ok=True)
-            # Create an empty FAISS index so other components can interact
-            # without raising AttributeError when no documents have been
-            # ingested yet.
-            self.index = FAISS.from_texts([], embedding=self.embed_model)
+        index_path = os.path.join(self.persist_dir, "index.faiss")
+        if os.path.exists(index_path):
+            try:
+                print(f"📂 Loading FAISS index from '{self.persist_dir}'")
+                self.index = FAISS.load_local(
+                    self.persist_dir,
+                    embeddings=self.embed_model,
+                    allow_dangerous_deserialization=True,
+                )
+                return
+            except Exception as e:
+                print(f"⚠️ Failed to load FAISS index: {e}. Recreating.")
+
+        print("📄 No existing FAISS index found — starting fresh.")
+        os.makedirs(self.persist_dir, exist_ok=True)
+        # Create an empty FAISS index so other components can interact
+        # without raising AttributeError when no documents have been
+        # ingested yet.
+        self.index = FAISS.from_texts([], embedding=self.embed_model)
 
     def add_documents(self, docs_with_metadata):
         """
