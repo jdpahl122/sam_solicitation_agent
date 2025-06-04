@@ -63,7 +63,7 @@ store = FaissStore()
 Then run the ingest mode to populate it:
 
 ```bash
-python main.py --mode ingest
+pipenv run python main.py --mode ingest
 ```
 
 The index will persist for future searches and RAG responses. If you encounter
@@ -78,19 +78,19 @@ The CLI is modular — you can **ingest**, **search**, **rerank** or use a simpl
 ### 1. Ingest Opportunities
 
 ```bash
-python main.py --mode ingest
+pipenv run python main.py --mode ingest
 ```
 
 ### 2. Semantic Search
 
 ```bash
-python main.py --mode search --query "AI contracting work for a small business"
+pipenv run python main.py --mode search --query "AI contracting work for a small business"
 ```
 
 ### 3. Rerank with LLM Intelligence
 
 ```bash
-python main.py --mode rerank --query "AI contracting work for a small business"
+pipenv run python main.py --mode rerank --query "AI contracting work for a small business"
 ```
 
 ### 4. RAG Mode
@@ -98,7 +98,7 @@ python main.py --mode rerank --query "AI contracting work for a small business"
 Use a lightweight Retrieval-Augmented Generation mode. Requires `LLAMA_API_KEY`.
 
 ```bash
-python main.py --mode rag --query "Explain AI contract opportunities in cyber"
+pipenv run python main.py --mode rag --query "Explain AI contract opportunities in cyber"
 ```
 
 ### 5. Solicitation Overview
@@ -106,7 +106,7 @@ python main.py --mode rag --query "Explain AI contract opportunities in cyber"
 Summarize a single solicitation by its notice ID:
 
 ```bash
-python solicitation_overview.py <notice_id>
+pipenv run python solicitation_overview.py <notice_id>
 ```
 
 
@@ -142,10 +142,10 @@ pipenv run pytest -q
 ## Example
 
 ```bash
-python main.py --mode ingest
-python main.py --mode search --query "Cybersecurity support for government agencies"
-python main.py --mode rerank --query "Cybersecurity support for government agencies"
-python solicitation_overview.py 02aa3325308f491d959ba968898accd6
+pipenv run python main.py --mode ingest
+pipenv run python main.py --mode search --query "Cybersecurity support for government agencies"
+pipenv run python main.py --mode rerank --query "Cybersecurity support for government agencies"
+pipenv run python solicitation_overview.py 02aa3325308f491d959ba968898accd6
 ```
 
 

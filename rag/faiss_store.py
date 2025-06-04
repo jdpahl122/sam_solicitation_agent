@@ -1,6 +1,8 @@
 import os
 from langchain_community.vectorstores import FAISS
 from langchain_ollama.embeddings import OllamaEmbeddings
+from langchain_community.docstore.in_memory import InMemoryDocstore
+from langchain_community.vectorstores.faiss import dependable_faiss_import
 
 class FaissStore:
     def __init__(self, persist_dir="vector_store"):
@@ -27,10 +29,25 @@ class FaissStore:
 
         print("📄 No existing FAISS index found — starting fresh.")
         os.makedirs(self.persist_dir, exist_ok=True)
-        # Create an empty FAISS index so other components can interact
-        # without raising AttributeError when no documents have been
-        # ingested yet.
-        self.index = FAISS.from_texts([], embedding=self.embed_model)
+
+        faiss = dependable_faiss_import()
+        try:
+            dim = len(self.embed_model.embed_query("dimension probe"))
+        except Exception as e:  # noqa: BLE001
+            dim = 768
+            print(
+                f"⚠️ Unable to determine embedding dimension automatically: {e}. "
+                f"Defaulting to {dim}."
+            )
+
+        index = faiss.IndexFlatL2(dim)
+        self.index = FAISS(
+            self.embed_model,
+            index,
+            InMemoryDocstore(),
+            {},
+        )
+        self.index.save_local(self.persist_dir)
 
     def add_documents(self, docs_with_metadata):
         """
