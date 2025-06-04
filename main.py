@@ -10,15 +10,12 @@ def ingest(config, store):
     agent = SolicitationAgent(config, store)
     agent.run()
 
-def search(store, query, k=20, setasides=None, naics_codes=None):
+def search(store, query, k=20, setasides=None):
     search_chain = SemanticSearchChain(store.index)
     results = search_chain.execute(query, k=k)
     if setasides:
         allowed = {sa.lower() for sa in setasides}
         results = [d for d in results if d.metadata.get("setaside", "").lower() in allowed]
-    if naics_codes:
-        allowed_naics = {code.strip() for code in naics_codes}
-        results = [d for d in results if d.metadata.get("naics") in allowed_naics]
     return results[:k]
 
 def rerank(store, query):
@@ -30,9 +27,9 @@ def rerank(store, query):
     print("\n✅ Top Recommended Opportunities:\n")
     print(top_5)
 
-def run_rag(query, api_key, setasides=None, naics_codes=None, k=20):
+def run_rag(query, api_key, setasides=None, k=20):
     rag = LlamaRAG("vector_store", api_key=api_key)
-    docs = rag.retrieve_docs(query, k=k, setasides=setasides, naics_codes=naics_codes)
+    docs = rag.retrieve_docs(query, k=k, setasides=setasides)
     print(f"\n✅ Top {len(docs)} Results:\n")
     for i, doc in enumerate(docs, 1):
         meta = doc.metadata
@@ -45,7 +42,7 @@ def run_rag(query, api_key, setasides=None, naics_codes=None, k=20):
         print(f"Set-Aside: {meta.get('setaside')}")
         print()
 
-    response = rag.generate_response(query, k=k, setasides=setasides, naics_codes=naics_codes)
+    response = rag.generate_response(query, k=k, setasides=setasides)
     print("\n📄 RAG-Enhanced Response:\n")
     print(response)
 
@@ -58,19 +55,11 @@ def main():
         type=str,
         help="Comma-separated list of set-asides to filter results",
     )
-    parser.add_argument(
-        "--naics",
-        type=str,
-        help="Comma-separated list of NAICS codes to filter results",
-    )
 
     args = parser.parse_args()
     setaside_list = None
     if args.setaside:
         setaside_list = [s.strip() for s in args.setaside.split(',') if s.strip()]
-    naics_list = None
-    if args.naics:
-        naics_list = [c.strip() for c in args.naics.split(',') if c.strip()]
 
     config = load_env()
     store = FaissStore()
@@ -82,7 +71,7 @@ def main():
         if not args.query:
             print("❌ --query is required for search mode.")
             return
-        results = search(store, args.query, k=20, setasides=setaside_list, naics_codes=naics_list)
+        results = search(store, args.query, k=20, setasides=setaside_list)
         print(f"\n✅ Top {len(results)} Search Results:\n")
         for i, doc in enumerate(results, 1):
             meta = doc.metadata
@@ -105,13 +94,7 @@ def main():
         if not args.query:
             print("❌ --query is required for rag mode.")
             return
-        run_rag(
-            args.query,
-            config["LLAMA_API_KEY"],
-            setasides=setaside_list,
-            naics_codes=naics_list,
-            k=20,
-        )
+        run_rag(args.query, config["LLAMA_API_KEY"], setasides=setaside_list, k=20)
 
 if __name__ == "__main__":
     main()

@@ -1,9 +1,0 @@
-You are a helpful assistant that summarizes federal contracting opportunities.
-Use the provided context to answer the user's question and highlight the most relevant solicitations.
-
-Context:
-{context}
-
-User Query: {query}
-
-Answer:

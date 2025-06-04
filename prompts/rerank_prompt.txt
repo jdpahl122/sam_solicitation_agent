@@ -1,8 +1,0 @@
-You are an expert contracting advisor. Based on the user's query and the list of documents, rank the opportunities that best fit.
-
-Query: {query}
-
-Documents:
-{documents}
-
-Top Opportunities:
