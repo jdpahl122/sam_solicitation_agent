@@ -13,7 +13,7 @@ Built using LangChain, Ollama, and FAISS vector storage.
 - Modular architecture: ingestion chain, search chain, rerank chain
 - CLI interface for flexible operation (`ingest`, `search`, `rerank`)
 - Retrieval-Augmented Generation (RAG) mode for conversational answers
-- Set-aside and NAICS code filtering with top-N result limiting
+- Set-aside filtering and top-N result limiting
 - Parallel ingestion for faster pulls from SAM.gov
 - Automatically initializes the FAISS index if none exists
 - Posted dates displayed in search and RAG results
@@ -87,8 +87,6 @@ pipenv run python main.py --mode ingest
 
 ```bash
 pipenv run python main.py --mode search --query "AI contracting work for a small business"
-# Filter by set-aside or NAICS codes
-pipenv run python main.py --mode search --query "AI contracting" --setaside "8(a) Set-Aside" --naics "541511,541512"
 ```
 
 ### 3. Rerank with LLM Intelligence
@@ -149,7 +147,6 @@ pipenv run pytest -q
 pipenv run python main.py --mode ingest
 pipenv run python main.py --mode search --query "Cybersecurity support for government agencies"
 pipenv run python main.py --mode rerank --query "Cybersecurity support for government agencies"
-pipenv run python main.py --mode rag --query "Cybersecurity" --naics "541519" --setaside "Total Small Business Set-Aside (FAR 19.5)"
 pipenv run python solicitation_overview.py 02aa3325308f491d959ba968898accd6
 ```
 

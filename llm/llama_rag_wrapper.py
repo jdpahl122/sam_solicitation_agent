@@ -14,26 +14,20 @@ class LlamaRAG:
         )
         self.prompt_template = load_prompt("rag_prompt.txt")
 
-    def retrieve_docs(self, query, k=10, setasides=None, naics_codes=None):
-        """Retrieve documents matching the query with optional filters."""
+    def retrieve_docs(self, query, k=10, setasides=None):
+        """Retrieve documents matching the query and optional set-aside filter."""
         docs = self.vectorstore.similarity_search(query, k=k * 2)
-
         if setasides:
-            allowed_setaside = {sa.lower() for sa in setasides}
-            docs = [d for d in docs if d.metadata.get("setaside", "").lower() in allowed_setaside]
-
-        if naics_codes:
-            allowed_naics = {code.strip() for code in naics_codes}
-            docs = [d for d in docs if d.metadata.get("naics") in allowed_naics]
-
+            allowed = {sa.lower() for sa in setasides}
+            docs = [d for d in docs if d.metadata.get("setaside", "").lower() in allowed]
         return docs[:k]
 
-    def retrieve_context(self, query, k=10, setasides=None, naics_codes=None):
-        docs = self.retrieve_docs(query, k=k, setasides=setasides, naics_codes=naics_codes)
+    def retrieve_context(self, query, k=10, setasides=None):
+        docs = self.retrieve_docs(query, k=k, setasides=setasides)
         return "\n\n".join([doc.page_content for doc in docs]), docs
 
-    def generate_response(self, query, k=10, setasides=None, naics_codes=None):
-        context, _ = self.retrieve_context(query, k=k, setasides=setasides, naics_codes=naics_codes)
+    def generate_response(self, query, k=10, setasides=None):
+        context, _ = self.retrieve_context(query, k=k, setasides=setasides)
         prompt = self.prompt_template.format(query=query, context=context)
 
         completion = self.llm_client.chat.completions.create(
