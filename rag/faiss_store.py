@@ -1,4 +1,5 @@
 import os
+import faiss
 from langchain_community.vectorstores import FAISS
 from langchain_ollama.embeddings import OllamaEmbeddings
 
@@ -22,10 +23,12 @@ class FaissStore:
         else:
             print("📄 No existing FAISS index found — starting fresh.")
             os.makedirs(self.persist_dir, exist_ok=True)
-            # Create an empty FAISS index so other components can interact
-            # without raising AttributeError when no documents have been
-            # ingested yet.
-            self.index = FAISS.from_texts([], embedding=self.embed_model)
+
+            # Use a single dummy text to get around dimension inference
+            self.index = FAISS.from_texts(["init placeholder"], embedding=self.embed_model)
+            self.index.index.reset()  # Remove the placeholder vector
+
+            self.index.save_local(self.persist_dir)
 
     def add_documents(self, docs_with_metadata):
         """
