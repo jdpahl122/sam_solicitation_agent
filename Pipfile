@@ -11,6 +11,7 @@ faiss-cpu = "*"
 langchain-community = "*"
 langchain-ollama = "*"
 bs4 = "*"
+boto3 = "*"
 llama-api-client = "*"
 
 [dev-packages]
