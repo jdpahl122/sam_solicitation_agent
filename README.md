@@ -159,7 +159,7 @@ pipenv run python solicitation_overview.py 02aa3325308f491d959ba968898accd6
 
 # About
 
-Built by [Your Name] to supercharge federal contracting discovery for SDVOSBs and small businesses in tech.
+Built by Jonathan Pahl to supercharge federal contracting discovery for SDVOSBs and small businesses in tech.
 
 > "Find the contracts that actually fit you — without digging through thousands of opportunities."
 
