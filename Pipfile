@@ -13,6 +13,7 @@ langchain-ollama = "*"
 bs4 = "*"
 boto3 = "*"
 llama-api-client = "*"
+pytest = "*"
 
 [dev-packages]
 

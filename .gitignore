@@ -3,3 +3,4 @@ prompts/*.txt
 index.faiss
 index.pkl
 *__pycache__/
+raw_data*

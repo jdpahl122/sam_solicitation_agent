@@ -108,7 +108,27 @@ Use a lightweight Retrieval-Augmented Generation mode. Requires `LLAMA_API_KEY`.
 pipenv run python main.py --mode rag --query "Explain AI contract opportunities in cyber"
 ```
 
-### 5. Solicitation Overview
+### 5. Enrich Stored Records
+
+Download long descriptions and all attachment files for a saved JSON record in MinIO.
+
+```bash
+pipenv run python main.py --mode enrich --path sam-archive/2025/06/17/<notice_id>.json
+```
+
+Process the entire bucket at once:
+
+```bash
+pipenv run python main.py --mode enrich --all
+```
+
+Process only a single day's records:
+
+```bash
+pipenv run python main.py --mode enrich --date 2025-06-17
+```
+
+### 6. Solicitation Overview
 
 Summarize a single solicitation by its notice ID:
 

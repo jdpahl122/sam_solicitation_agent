@@ -1,5 +1,6 @@
 import argparse
 from utils.env_loader import load_env
+from utils.solicitation_assets import enrich_record_with_details, parse_s3_path
 from agents.solicitation_agent import SolicitationAgent
 from chains.semantic_search_chain import SemanticSearchChain
 from chains.rerank_chain import RerankChain
@@ -51,7 +52,12 @@ def run_rag(query, api_key, setasides=None, naics_codes=None, k=20):
 
 def main():
     parser = argparse.ArgumentParser(description="SAM Solicitation Agent CLI")
-    parser.add_argument("--mode", choices=["ingest", "search", "rerank", "rag"], required=True, help="Mode to run")
+    parser.add_argument(
+        "--mode",
+        choices=["ingest", "search", "rerank", "rag", "enrich"],
+        required=True,
+        help="Mode to run",
+    )
     parser.add_argument("--query", type=str, help="Search query (required for search/rerank/rag)")
     parser.add_argument(
         "--setaside",
@@ -62,6 +68,27 @@ def main():
         "--naics",
         type=str,
         help="Comma-separated list of NAICS codes to filter results",
+    )
+    parser.add_argument(
+        "--path",
+        type=str,
+        help="S3 path for a single record, e.g. sam-archive/2025/06/16/<id>.json",
+    )
+    parser.add_argument(
+        "--all",
+        action="store_true",
+        help="Enrich every JSON record in the specified bucket",
+    )
+    parser.add_argument(
+        "--date",
+        type=str,
+        help="Process only records from this date (YYYY-MM-DD)",
+    )
+    parser.add_argument(
+        "--bucket",
+        type=str,
+        default="sam-archive",
+        help="Bucket to use with --all or when --path lacks a bucket",
     )
 
     args = parser.parse_args()
@@ -112,6 +139,53 @@ def main():
             naics_codes=naics_list,
             k=20,
         )
+
+    elif args.mode == "enrich":
+        import json
+        import boto3
+
+        if not args.path and not args.all and not args.date:
+            print("❌ --path, --date, or --all is required for enrich mode.")
+            return
+
+        s3 = boto3.client(
+            "s3",
+            endpoint_url="http://localhost:9000",
+            aws_access_key_id=config.get("MINIO_ACCESS_KEY"),
+            aws_secret_access_key=config.get("MINIO_SECRET_KEY"),
+            region_name="us-east-1",
+        )
+
+        api_key = config.get("SAM_API_KEY")
+
+        def process_record(bucket: str, key: str) -> None:
+            obj = s3.get_object(Bucket=bucket, Key=key)
+            record = json.loads(obj["Body"].read())
+            enriched = enrich_record_with_details(record, s3, bucket, api_key=api_key)
+            print(json.dumps({
+                "noticeId": record.get("noticeId"),
+                "description_key": enriched.get("description_data_key"),
+                "attachment_keys": enriched.get("attachment_keys", []),
+            }, indent=2))
+
+        if args.all:
+            bucket = args.bucket
+            paginator = s3.get_paginator("list_objects_v2")
+            for page in paginator.paginate(Bucket=bucket):
+                for obj in page.get("Contents", []):
+                    key = obj["Key"]
+                    if not key.endswith(".json"):
+                        continue
+                    process_record(bucket, key)
+        elif args.date:
+            bucket = args.bucket
+            from utils.solicitation_assets import list_json_keys_for_date
+
+            for key in list_json_keys_for_date(s3, bucket, args.date):
+                process_record(bucket, key)
+        else:
+            bucket, key = parse_s3_path(args.path, args.bucket)
+            process_record(bucket, key)
 
 if __name__ == "__main__":
     main()
