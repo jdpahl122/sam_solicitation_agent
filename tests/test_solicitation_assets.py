@@ -1,5 +1,5 @@
 import json
-from utils.solicitation_assets import enrich_record_with_details
+from utils.solicitation_assets import enrich_record_with_details, parse_s3_path
 
 
 class DummyS3:
@@ -52,3 +52,13 @@ def test_enrich_record_with_details(monkeypatch):
     assert len(enriched["attachment_keys"]) == 2
     assert len(s3.objects) == 3
     assert calls[0] == "http://example.com/desc"
+
+
+def test_parse_s3_path():
+    b, k = parse_s3_path("sam-archive/2025/06/16/foo.json")
+    assert b == "sam-archive"
+    assert k == "2025/06/16/foo.json"
+
+    b, k = parse_s3_path("2025/06/16/foo.json", "sam-archive")
+    assert b == "sam-archive"
+    assert k == "2025/06/16/foo.json"

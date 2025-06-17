@@ -3,10 +3,10 @@ import json
 import boto3
 
 from utils.env_loader import load_env
-from utils.solicitation_assets import enrich_record_with_details
+from utils.solicitation_assets import enrich_record_with_details, parse_s3_path
 
 
-def main(key: str):
+def main(path: str):
     config = load_env()
     s3 = boto3.client(
         "s3",
@@ -15,7 +15,7 @@ def main(key: str):
         aws_secret_access_key=config.get("MINIO_SECRET_KEY"),
         region_name="us-east-1",
     )
-    bucket = "sam-archive"
+    bucket, key = parse_s3_path(path)
     obj = s3.get_object(Bucket=bucket, Key=key)
     record = json.loads(obj["Body"].read())
 
@@ -37,7 +37,10 @@ if __name__ == "__main__":
         description="Fetch description and attachments for a saved SAM notice"
     )
     parser.add_argument(
-        "key", help="S3 key for the JSON file, e.g. 2025/06/16/<notice_id>.json"
+        "path",
+        help=(
+            "S3 path to the JSON file, e.g. sam-archive/2025/06/16/<notice_id>.json"
+        ),
     )
     args = parser.parse_args()
-    main(args.key)
+    main(args.path)

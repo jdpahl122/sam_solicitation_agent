@@ -2,7 +2,7 @@ import os
 import json
 import re
 import requests
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 
 def enrich_record_with_details(
@@ -95,3 +95,27 @@ def enrich_record_with_details(
         record["attachment_keys"] = attachment_keys
 
     return record
+
+
+def parse_s3_path(path: str, default_bucket: str = "sam-archive") -> Tuple[str, str]:
+    """Split an S3 path into bucket and key.
+
+    Parameters
+    ----------
+    path : str
+        Either ``<bucket>/<key>`` or just ``<key>``.  If only a key is
+        provided, ``default_bucket`` is returned as the bucket name.
+
+    Returns
+    -------
+    Tuple[str, str]
+        The bucket and key values.
+    """
+    if "/" not in path:
+        return default_bucket, path
+
+    first, rest = path.split("/", 1)
+    if first.isdigit():
+        # Looks like a year prefix rather than a bucket name
+        return default_bucket, path
+    return first, rest
