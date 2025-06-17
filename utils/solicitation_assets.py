@@ -120,3 +120,23 @@ def parse_s3_path(path: str, default_bucket: str = "sam-archive") -> Tuple[str, 
         # Looks like a year prefix rather than a bucket name
         return default_bucket, path
     return first, rest
+
+
+def date_to_prefix(date_str: str) -> str:
+    """Convert ``YYYY-MM-DD`` into an S3 prefix ``YYYY/MM/DD/``."""
+    from datetime import datetime
+
+    dt = datetime.fromisoformat(date_str)
+    return dt.strftime("%Y/%m/%d/")
+
+
+def list_json_keys_for_date(s3_client, bucket: str, date_str: str):
+    """Yield JSON object keys from ``bucket`` for the specified date."""
+
+    prefix = date_to_prefix(date_str)
+    paginator = s3_client.get_paginator("list_objects_v2")
+    for page in paginator.paginate(Bucket=bucket, Prefix=prefix):
+        for obj in page.get("Contents", []):
+            key = obj["Key"]
+            if key.endswith(".json"):
+                yield key

@@ -80,6 +80,11 @@ def main():
         help="Enrich every JSON record in the specified bucket",
     )
     parser.add_argument(
+        "--date",
+        type=str,
+        help="Process only records from this date (YYYY-MM-DD)",
+    )
+    parser.add_argument(
         "--bucket",
         type=str,
         default="sam-archive",
@@ -139,8 +144,8 @@ def main():
         import json
         import boto3
 
-        if not args.path and not args.all:
-            print("❌ --path or --all is required for enrich mode.")
+        if not args.path and not args.all and not args.date:
+            print("❌ --path, --date, or --all is required for enrich mode.")
             return
 
         s3 = boto3.client(
@@ -172,6 +177,12 @@ def main():
                     if not key.endswith(".json"):
                         continue
                     process_record(bucket, key)
+        elif args.date:
+            bucket = args.bucket
+            from utils.solicitation_assets import list_json_keys_for_date
+
+            for key in list_json_keys_for_date(s3, bucket, args.date):
+                process_record(bucket, key)
         else:
             bucket, key = parse_s3_path(args.path, args.bucket)
             process_record(bucket, key)

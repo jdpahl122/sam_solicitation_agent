@@ -1,5 +1,10 @@
 import json
-from utils.solicitation_assets import enrich_record_with_details, parse_s3_path
+from utils.solicitation_assets import (
+    enrich_record_with_details,
+    parse_s3_path,
+    date_to_prefix,
+    list_json_keys_for_date,
+)
 
 
 class DummyS3:
@@ -62,3 +67,38 @@ def test_parse_s3_path():
     b, k = parse_s3_path("2025/06/16/foo.json", "sam-archive")
     assert b == "sam-archive"
     assert k == "2025/06/16/foo.json"
+
+
+def test_date_to_prefix():
+    assert date_to_prefix("2025-06-17") == "2025/06/17/"
+
+
+class DummyListS3:
+    def __init__(self, pages):
+        self.pages = pages
+
+    class Pager:
+        def __init__(self, pages):
+            self.pages = pages
+
+        def paginate(self, **kwargs):
+            return iter(self.pages)
+
+    def get_paginator(self, name):
+        assert name == "list_objects_v2"
+        return DummyListS3.Pager(self.pages)
+
+
+def test_list_json_keys_for_date():
+    pages = [
+        {"Contents": [
+            {"Key": "2025/06/17/a.json"},
+            {"Key": "2025/06/17/b.txt"},
+        ]},
+        {"Contents": [
+            {"Key": "2025/06/17/c.json"}
+        ]},
+    ]
+    s3 = DummyListS3(pages)
+    keys = list(list_json_keys_for_date(s3, "bucket", "2025-06-17"))
+    assert keys == ["2025/06/17/a.json", "2025/06/17/c.json"]

@@ -122,6 +122,12 @@ Process the entire bucket at once:
 pipenv run python main.py --mode enrich --all
 ```
 
+Process only a single day's records:
+
+```bash
+pipenv run python main.py --mode enrich --date 2025-06-17
+```
+
 ### 6. Solicitation Overview
 
 Summarize a single solicitation by its notice ID:
