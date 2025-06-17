@@ -71,7 +71,8 @@ def enrich_record_with_details(
 
     # ------------------------------------------------------------------
     attachment_keys: List[str] = []
-    for link in record.get("resourceLinks", []):
+    links = record.get("resourceLinks") or []
+    for link in links:
         if not isinstance(link, str) or not link.startswith("http"):
             continue
         try:
