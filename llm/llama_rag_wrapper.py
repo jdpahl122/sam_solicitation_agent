@@ -49,6 +49,12 @@ class LlamaRAG:
 
     def generate_response(self, query, k=10, setasides=None, naics_codes=None):
         context, _ = self.retrieve_context(query, k=k, setasides=setasides, naics_codes=naics_codes)
+
+        if not context.strip():
+            # Avoid sending an empty context to the LLM which would result in
+            # hallucinated answers.
+            return "No relevant opportunities were found in the vector store."
+
         prompt = self.prompt_template.format(query=query, context=context)
 
         completion = self.llm_client.chat.completions.create(
