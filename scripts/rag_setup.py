@@ -1,8 +1,12 @@
 import os
 import json
 import io
+from typing import List
+
 import boto3
 import pdfplumber
+from botocore.exceptions import ClientError
+
 from utils.env_loader import load_env
 from utils.rag_helpers import filter_valid_opportunities
 from rag.faiss_store import FaissStore
@@ -33,7 +37,7 @@ def run() -> None:
     bucket = "sam-archive"
     paginator = s3.get_paginator("list_objects_v2")
 
-    docs = []
+    docs: List[dict] = []
     processed = skipped = failed = 0
     pdf_missing = 0
 
@@ -42,7 +46,14 @@ def run() -> None:
             key = obj["Key"]
             if not key.endswith(".json"):
                 continue
+
+            parts = key.split("/")
+            # Expect keys like YYYY/MM/DD/<notice_id>.json
+            if len(parts) != 4:
+                continue
+
             processed += 1
+
             try:
                 body = s3.get_object(Bucket=bucket, Key=key)["Body"].read()
                 record = json.loads(body)
@@ -60,11 +71,24 @@ def run() -> None:
                 skipped += 1
                 continue
 
-            notice_id = record.get("noticeId") or os.path.splitext(key)[0].split("/")[-1]
-            prefix = os.path.dirname(key)
-            attach_prefix = f"{prefix}/{notice_id}-attachment-"
+            notice_id = record.get("noticeId") or os.path.splitext(os.path.basename(key))[0]
+            date_prefix = os.path.dirname(key)
+            asset_prefix = f"{date_prefix}/{notice_id}/"
+
             pdf_texts = []
-            resp = s3.list_objects_v2(Bucket=bucket, Prefix=attach_prefix)
+
+            # description.json contains additional text if present
+            try:
+                desc_obj = s3.get_object(Bucket=bucket, Key=f"{asset_prefix}description.json")
+                desc_data = json.loads(desc_obj["Body"].read())
+                extra_desc = desc_data.get("description") if isinstance(desc_data, dict) else None
+            except ClientError:
+                extra_desc = None
+            except Exception as e:
+                print(f"⚠️ Failed to load description for {notice_id}: {e}")
+                extra_desc = None
+
+            resp = s3.list_objects_v2(Bucket=bucket, Prefix=asset_prefix)
             if resp.get("KeyCount", 0) == 0:
                 pdf_missing += 1
             for item in resp.get("Contents", []):
@@ -76,14 +100,15 @@ def run() -> None:
                 except Exception as e:
                     print(f"⚠️ Failed to fetch PDF {item['Key']}: {e}")
 
-            text_blob = "\n\n".join(
-                part for part in [
-                    record.get("title"),
-                    record.get("description"),
-                    *pdf_texts,
-                ]
-                if part
-            )
+            text_parts = [record.get("title"), record.get("description")]
+            if extra_desc:
+                if isinstance(extra_desc, str):
+                    text_parts.append(extra_desc)
+                else:
+                    text_parts.append(json.dumps(extra_desc))
+            text_parts.extend(pdf_texts)
+
+            text_blob = "\n\n".join(part for part in text_parts if part)
 
             metadata = {
                 "notice_id": notice_id,
@@ -99,10 +124,16 @@ def run() -> None:
             docs.append({"text": text_blob, "metadata": metadata})
             print(f"✅ Ingested {notice_id}")
 
-    print(f"\n📊 Processed: {processed} | Stored: {len(docs)} | Skipped: {skipped} | PDFs missing: {pdf_missing} | Failures: {failed}")
+    print(
+        f"\n📊 Processed: {processed} | Stored: {len(docs)} | "
+        f"Skipped: {skipped} | PDFs missing: {pdf_missing} | Failures: {failed}"
+    )
 
-    store = FaissStore()
-    store.overwrite_documents(docs)
+    if docs:
+        store = FaissStore()
+        store.overwrite_documents(docs)
+    else:
+        print("❌ No documents to store, skipping FAISS index update.")
 
 
 if __name__ == "__main__":
