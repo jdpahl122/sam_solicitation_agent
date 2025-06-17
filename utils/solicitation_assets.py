@@ -45,6 +45,16 @@ def enrich_record_with_details(
     key_prefix = dt.strftime("%Y/%m/%d")
     base_prefix = f"{key_prefix}/{notice_id}"
 
+    # Skip enrichment if this notice already has a folder of assets
+    if not dry_run:
+        existing = s3_client.list_objects_v2(
+            Bucket=bucket,
+            Prefix=f"{base_prefix}/",
+            MaxKeys=1,
+        )
+        if existing.get("KeyCount", 0) > 0:
+            return record
+
     # ------------------------------------------------------------------
     desc = record.get("description")
     if isinstance(desc, str) and desc.startswith("http"):

@@ -14,6 +14,14 @@ class DummyS3:
     def put_object(self, Bucket, Key, Body):
         self.objects[(Bucket, Key)] = Body
 
+    def list_objects_v2(self, Bucket, Prefix, MaxKeys=1000):
+        contents = [
+            {"Key": k}
+            for (b, k), _ in self.objects.items()
+            if b == Bucket and k.startswith(Prefix)
+        ]
+        return {"KeyCount": len(contents), "Contents": contents[:MaxKeys]}
+
 
 def test_enrich_record_with_details(monkeypatch):
     record = {
@@ -57,6 +65,34 @@ def test_enrich_record_with_details(monkeypatch):
     assert len(enriched["attachment_keys"]) == 2
     assert len(s3.objects) == 3
     assert calls[0] == "http://example.com/desc"
+
+
+def test_enrich_record_idempotent(monkeypatch):
+    record = {
+        "noticeId": "abc123",
+        "postedDate": "2025-06-16",
+        "description": "http://example.com/desc",
+        "resourceLinks": [
+            "http://example.com/file1/download",
+        ],
+    }
+
+    def mock_get(url):
+        raise AssertionError("requests.get should not be called")
+
+    monkeypatch.setattr("requests.get", mock_get)
+
+    s3 = DummyS3()
+    s3.put_object(
+        Bucket="bucket",
+        Key="2025/06/16/abc123/description.json",
+        Body=b"{}",
+    )
+
+    enriched = enrich_record_with_details(record, s3, "bucket", dry_run=False)
+
+    assert "description_data_key" not in enriched
+    assert "attachment_keys" not in enriched
 
 
 def test_parse_s3_path():
