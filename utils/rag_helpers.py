@@ -40,7 +40,7 @@ def filter_valid_opportunities(data: List[Dict]) -> List[Dict]:
     valid = []
 
     for opp in data:
-        notice_type = opp.get("noticeType") or opp.get("notice_type")
+        notice_type = opp.get("noticeType") or opp.get('type') or opp.get("notice_type") or opp.get("baseType")
         if not notice_type:
             continue
         if notice_type in EXCLUDED_TYPES or notice_type not in ACTIONABLE_TYPES:
@@ -53,6 +53,7 @@ def filter_valid_opportunities(data: List[Dict]) -> List[Dict]:
         )
         deadline = _parse_date(deadline_str)
         if not deadline or deadline <= now:
+            print(f'skipped deadline {deadline}')
             continue
 
         valid.append(opp)

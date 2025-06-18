@@ -6,6 +6,7 @@ from chains.semantic_search_chain import SemanticSearchChain
 from chains.rerank_chain import RerankChain
 from rag.faiss_store import FaissStore
 from llm import LlamaRAG
+from scripts.rag_setup import run as run_rag_setup
 
 def ingest(config, store):
     agent = SolicitationAgent(config, store)
@@ -54,7 +55,7 @@ def main():
     parser = argparse.ArgumentParser(description="SAM Solicitation Agent CLI")
     parser.add_argument(
         "--mode",
-        choices=["ingest", "search", "rerank", "rag", "enrich"],
+        choices=["ingest", "search", "rerank", "rag", "enrich", "ragsetup"],
         required=True,
         help="Mode to run",
     )
@@ -186,6 +187,9 @@ def main():
         else:
             bucket, key = parse_s3_path(args.path, args.bucket)
             process_record(bucket, key)
+
+    elif args.mode == "ragsetup":
+        run_rag_setup()
 
 if __name__ == "__main__":
     main()
