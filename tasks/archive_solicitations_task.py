@@ -21,7 +21,7 @@ class ArchiveSolicitationsTask(BaseTask):
         access_key: str,
         secret_key: str,
         bucket: str = "sam-archive",
-        endpoint_url: str = "http://localhost:9000",
+        endpoint_url: str | None = None,
         dry_run: bool = False,
     ) -> None:
         self.bucket = bucket
@@ -29,7 +29,7 @@ class ArchiveSolicitationsTask(BaseTask):
 
         self.s3 = boto3.client(
             "s3",
-            endpoint_url=endpoint_url,
+            endpoint_url=endpoint_url or os.getenv("MINIO_ENDPOINT", "http://localhost:9000"),
             aws_access_key_id=access_key,
             aws_secret_access_key=secret_key,
             region_name="us-east-1",

@@ -10,7 +10,7 @@ def main(path: str):
     config = load_env()
     s3 = boto3.client(
         "s3",
-        endpoint_url="http://localhost:9000",
+        endpoint_url=config.get("MINIO_ENDPOINT", "http://localhost:9000"),
         aws_access_key_id=config.get("MINIO_ACCESS_KEY"),
         aws_secret_access_key=config.get("MINIO_SECRET_KEY"),
         region_name="us-east-1",
