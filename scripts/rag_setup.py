@@ -46,7 +46,6 @@ def run() -> None:
             key = obj["Key"]
             if not key.endswith(".json"):
                 continue
-
             parts = key.split("/")
             # Expect keys like YYYY/MM/DD/<notice_id>.json
             if len(parts) != 4:
@@ -54,7 +53,7 @@ def run() -> None:
 
             processed += 1
 
-            try:
+            try: 
                 body = s3.get_object(Bucket=bucket, Key=key)["Body"].read()
                 record = json.loads(body)
             except Exception as e:
@@ -63,11 +62,13 @@ def run() -> None:
                 continue
 
             if not filter_valid_opportunities([record]):
+                print(f"skipped filter_valid_opportunities {record}")
                 skipped += 1
                 continue
 
-            set_aside = (record.get("setAsideCode") or "").lower()
-            if "small" not in set_aside and "sdvosb" not in set_aside:
+            set_aside = (record.get("typeOfSetAside") or "").lower()
+            if "sba" not in set_aside and "sdvosbc" not in set_aside:
+                print(f"skipped set-aside {set_aside}")
                 skipped += 1
                 continue
 
