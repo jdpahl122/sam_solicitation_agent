@@ -15,6 +15,7 @@ boto3 = "*"
 llama-api-client = "*"
 pytest = "*"
 pdfplumber = "*"
+pymilvus = "*"
 
 [dev-packages]
 

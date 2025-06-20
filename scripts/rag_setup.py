@@ -9,7 +9,7 @@ from botocore.exceptions import ClientError
 
 from utils.env_loader import load_env
 from utils.rag_helpers import filter_valid_opportunities
-from rag.faiss_store import FaissStore
+from rag.milvus_store import MilvusStore
 
 
 def extract_pdf_text(data: bytes) -> str:
@@ -28,7 +28,7 @@ def run() -> None:
     config = load_env()
     s3 = boto3.client(
         "s3",
-        endpoint_url="http://localhost:9000",
+        endpoint_url=config.get("MINIO_ENDPOINT", "http://localhost:9000"),
         aws_access_key_id=config.get("MINIO_ACCESS_KEY"),
         aws_secret_access_key=config.get("MINIO_SECRET_KEY"),
         region_name="us-east-1",
@@ -131,10 +131,13 @@ def run() -> None:
     )
 
     if docs:
-        store = FaissStore()
+        store = MilvusStore(
+            host=config.get("MILVUS_HOST", "localhost"),
+            port=config.get("MILVUS_PORT", "19530"),
+        )
         store.overwrite_documents(docs)
     else:
-        print("❌ No documents to store, skipping FAISS index update.")
+        print("❌ No documents to store, skipping Milvus index update.")
 
 
 if __name__ == "__main__":

@@ -11,7 +11,7 @@ def enrich_record_with_details(
     bucket: str,
     *,
     api_key: Optional[str] = None,
-    endpoint_url: str = "http://localhost:9000",
+    endpoint_url: str = os.getenv("MINIO_ENDPOINT", "http://localhost:9000"),
     dry_run: bool = False,
 ) -> Dict:
     """Fetch full description and attachments for a solicitation record.

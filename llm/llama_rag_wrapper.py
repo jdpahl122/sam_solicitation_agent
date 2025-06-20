@@ -1,6 +1,6 @@
 from llama_api_client import LlamaAPIClient
-from langchain_community.vectorstores import FAISS
 from langchain_ollama.embeddings import OllamaEmbeddings
+from rag.milvus_store import MilvusStore
 from utils.prompt_loader import load_prompt
 from utils.rag_helpers import filter_valid_opportunities
 
@@ -8,11 +8,7 @@ class LlamaRAG:
     def __init__(self, vectorstore_path="vector_store", api_key=None):
         self.llm_client = LlamaAPIClient(api_key=api_key)
         self.embed_model = OllamaEmbeddings(model="nomic-embed-text")
-        self.vectorstore = FAISS.load_local(
-            vectorstore_path,
-            embeddings=self.embed_model,
-            allow_dangerous_deserialization=True
-        )
+        self.vectorstore = MilvusStore().index
         self.prompt_template = load_prompt("rag_prompt.txt")
 
     def retrieve_docs(self, query, k=10, setasides=None, naics_codes=None):

@@ -4,7 +4,7 @@ from utils.solicitation_assets import enrich_record_with_details, parse_s3_path
 from agents.solicitation_agent import SolicitationAgent
 from chains.semantic_search_chain import SemanticSearchChain
 from chains.rerank_chain import RerankChain
-from rag.faiss_store import FaissStore
+from rag.milvus_store import MilvusStore
 from llm import LlamaRAG
 from scripts.rag_setup import run as run_rag_setup
 
@@ -101,7 +101,10 @@ def main():
         naics_list = [c.strip() for c in args.naics.split(',') if c.strip()]
 
     config = load_env()
-    store = FaissStore()
+    store = MilvusStore(
+        host=config.get("MILVUS_HOST", "localhost"),
+        port=config.get("MILVUS_PORT", "19530"),
+    )
 
     if args.mode == "ingest":
         ingest(config, store)
@@ -151,7 +154,7 @@ def main():
 
         s3 = boto3.client(
             "s3",
-            endpoint_url="http://localhost:9000",
+            endpoint_url=config.get("MINIO_ENDPOINT", "http://localhost:9000"),
             aws_access_key_id=config.get("MINIO_ACCESS_KEY"),
             aws_secret_access_key=config.get("MINIO_SECRET_KEY"),
             region_name="us-east-1",

@@ -1,13 +1,13 @@
 # 🛡️ SAM Solicitation Agent
 
 **An intelligent assistant that pulls, processes, stores, and finds the best federal contracting opportunities for SDVOSB and technology companies.**  
-Built using LangChain, Ollama, and FAISS vector storage.
+Built using LangChain, Ollama, and a Milvus vector database.
 
 ## Features
 
 - Pulls live solicitations from [SAM.gov](https://sam.gov)
 - Preprocesses and embeds opportunities using local LLMs
-- Stores embeddings with full metadata in a persistent FAISS vector database
+- Stores embeddings with full metadata in a persistent Milvus vector database
 - Semantic search across all opportunities
 - Intelligent reranking of results based on your company qualifications
 - Modular architecture: ingestion chain, search chain, rerank chain
@@ -15,7 +15,7 @@ Built using LangChain, Ollama, and FAISS vector storage.
 - Retrieval-Augmented Generation (RAG) mode for conversational answers
 - Set-aside and NAICS code filtering with top-N result limiting
 - Parallel ingestion for faster pulls from SAM.gov
-- Automatically initializes the FAISS index if none exists
+- Automatically initializes the Milvus collection if none exists
 - Posted dates displayed in search and RAG results
 - Cleans old vector data so only active solicitations remain
 - Archives raw solicitation JSON to a local MinIO object store
@@ -26,7 +26,7 @@ Built using LangChain, Ollama, and FAISS vector storage.
 - Python 3.10+
 - `pipenv`
 - [Ollama](https://ollama.ai/) installed locally
-- FAISS via `langchain_community`
+- Milvus via `langchain_community`
 - SAM.gov API Key
 
 
@@ -47,21 +47,24 @@ SAM_API_KEY=your-sam-api-key-here
 LLAMA_API_KEY=your-ollama-key-here
 MINIO_ACCESS_KEY=minio-access
 MINIO_SECRET_KEY=minio-secret
+MINIO_ENDPOINT=http://localhost:9000
+MILVUS_HOST=localhost
+MILVUS_PORT=19530
 ```
 
 The agent requires your **SAM.gov API key**. The `LLAMA_API_KEY` is only needed
 for the optional RAG mode and solicitation overview script.
 
-## Initializing the FAISS Store
+## Initializing the Milvus Store
 
-Instantiate `FaissStore` to create or load the vector index in `./vector_store`.
+Instantiate `MilvusStore` to connect to the Milvus collection.
 If the files are missing or corrupted they will be recreated automatically:
 
 ```python
-from rag.faiss_store import FaissStore
+from rag.milvus_store import MilvusStore
 
-# creates ./vector_store/index.faiss on first run
-store = FaissStore()
+# connects to Milvus on first run
+store = MilvusStore()
 ```
 
 Then run the ingest mode to populate it. Each run now clears any existing
@@ -71,9 +74,9 @@ documents so only active solicitations remain:
 pipenv run python main.py --mode ingest
 ```
 
-The index will persist for future searches and RAG responses. If you encounter
-errors loading the store, delete the `vector_store` directory and rerun the
-ingest mode.
+The collection will persist for future searches and RAG responses. If you
+encounter connection errors, ensure the Milvus service is running and reachable
+before rerunning the ingest mode.
 
 ## Usage
 
@@ -142,9 +145,9 @@ pipenv run python solicitation_overview.py <notice_id>
 | Component | Purpose |
 |:--|:--|
 | `agents/solicitation_agent.py` | Pull → preprocess → embed |
-| `chains/semantic_search_chain.py` | Search FAISS vectorstore |
+| `chains/semantic_search_chain.py` | Search Milvus vectorstore |
 | `chains/rerank_chain.py` | Rerank results with LLM |
-| `rag/faiss_store.py` | Persistent FAISS vector DB |
+| `rag/milvus_store.py` | Persistent Milvus vector DB |
 | `tasks/` | Modular task units (pull, preprocess, search) |
 | `prompts/` | Rerank prompt templates |
 | `tests/` | Unit tests |
