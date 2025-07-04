@@ -2,6 +2,7 @@ import argparse
 from utils.env_loader import load_env
 from utils.solicitation_assets import enrich_record_with_details, parse_s3_path
 from agents.solicitation_agent import SolicitationAgent
+from agents.csv_opportunity_agent import CSVOpportunityAgent
 from chains.semantic_search_chain import SemanticSearchChain
 from chains.rerank_chain import RerankChain
 from rag.milvus_store import MilvusStore
@@ -55,7 +56,7 @@ def main():
     parser = argparse.ArgumentParser(description="SAM Solicitation Agent CLI")
     parser.add_argument(
         "--mode",
-        choices=["ingest", "search", "rerank", "rag", "enrich", "ragsetup"],
+        choices=["ingest", "search", "rerank", "rag", "enrich", "ragsetup", "csv-load", "csv-match"],
         required=True,
         help="Mode to run",
     )
@@ -91,6 +92,22 @@ def main():
         default="sam-archive",
         help="Bucket to use with --all or when --path lacks a bucket",
     )
+    parser.add_argument(
+        "--csv-file",
+        type=str,
+        help="Path to ContractOpportunitiesFullCSV.csv file (required for csv-load and csv-match modes)",
+    )
+    parser.add_argument(
+        "--company-profile",
+        type=str,
+        help="Company profile description for opportunity matching (required for csv-match mode)",
+    )
+    parser.add_argument(
+        "--top-k",
+        type=int,
+        default=10,
+        help="Number of top opportunities to return (default: 10)",
+    )
 
     args = parser.parse_args()
     setaside_list = None
@@ -102,8 +119,8 @@ def main():
 
     config = load_env()
     store = MilvusStore(
-        host=config.get("MILVUS_HOST", "localhost"),
-        port=config.get("MILVUS_PORT", "19530"),
+        host=config.get("MILVUS_HOST") or "localhost",
+        port=config.get("MILVUS_PORT") or "19530",
     )
 
     if args.mode == "ingest":
@@ -193,6 +210,70 @@ def main():
 
     elif args.mode == "ragsetup":
         run_rag_setup()
+
+    elif args.mode == "csv-load":
+        if not args.csv_file:
+            print("❌ --csv-file is required for csv-load mode.")
+            return
+            
+        print("🚀 Loading CSV opportunities and embedding in vector store...")
+        csv_agent = CSVOpportunityAgent(args.csv_file, store)
+        count = csv_agent.load_and_embed_opportunities()
+        
+        if count > 0:
+            print(f"✅ Successfully loaded and embedded {count} opportunities from CSV")
+        else:
+            print("❌ No opportunities were loaded from the CSV file")
+
+    elif args.mode == "csv-match":
+        if not args.csv_file:
+            print("❌ --csv-file is required for csv-match mode.")
+            return
+        if not args.company_profile:
+            print("❌ --company-profile is required for csv-match mode.")
+            return
+            
+        print("🎯 Finding opportunities that match your company profile...")
+        csv_agent = CSVOpportunityAgent(args.csv_file, store)
+        
+        # Check if we should load fresh data or use existing
+        try:
+            # Try to search existing data first
+            results = csv_agent.search_existing_opportunities(args.company_profile, args.top_k)
+            if not results:
+                # If no results, load fresh data
+                print("📂 No existing data found, loading fresh opportunities...")
+                results = csv_agent.run_full_pipeline(args.company_profile, args.top_k)
+        except Exception as e:
+            print(f"⚠️ Error searching existing data: {e}")
+            print("📂 Loading fresh opportunities...")
+            results = csv_agent.run_full_pipeline(args.company_profile, args.top_k)
+        
+        if results:
+            print(f"\n🎯 Top {len(results)} Matching Opportunities:\n")
+            print("=" * 80)
+            
+            for i, result in enumerate(results, 1):
+                metadata = result['metadata']
+                print(f"\n📋 OPPORTUNITY #{i} - MATCH SCORE: {result['match_score']}/100")
+                print("=" * 60)
+                print(f"Title: {metadata.get('title', 'N/A')}")
+                print(f"Department: {metadata.get('department', 'N/A')}")
+                print(f"Set-Aside: {metadata.get('set_aside', 'N/A')}")
+                print(f"NAICS Code: {metadata.get('naics_code', 'N/A')}")
+                print(f"Award Amount: {metadata.get('award_amount', 'N/A')}")
+                print(f"Response Deadline: {metadata.get('response_deadline', 'N/A')}")
+                print(f"Solicitation #: {metadata.get('solicitation_number', 'N/A')}")
+                print(f"Location: {metadata.get('location', 'N/A')}")
+                print(f"Link: {metadata.get('link', 'N/A')}")
+                print(f"Contact: {metadata.get('primary_contact_name', 'N/A')} ({metadata.get('primary_contact_email', 'N/A')})")
+                
+                print(f"\n🤖 AI EVALUATION:")
+                print("-" * 40)
+                print(result['evaluation'])
+                print("\n" + "=" * 80)
+        else:
+            print("❌ No matching opportunities found")
 
 if __name__ == "__main__":
     main()

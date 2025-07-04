@@ -6,12 +6,14 @@ Built using LangChain, Ollama, and a Milvus vector database.
 ## Features
 
 - Pulls live solicitations from [SAM.gov](https://sam.gov)
+- **🆕 CSV Opportunity Matching**: Load ContractOpportunitiesFullCSV.csv and use AI to find the best matches for your company profile
 - Preprocesses and embeds opportunities using local LLMs
 - Stores embeddings with full metadata in a persistent Milvus vector database
 - Semantic search across all opportunities
 - Intelligent reranking of results based on your company qualifications
+- **🆕 AI-Powered Opportunity Evaluation**: Uses LLM to score opportunities based on set-aside match, capabilities, NAICS codes, competition, and more
 - Modular architecture: ingestion chain, search chain, rerank chain
-- CLI interface for flexible operation (`ingest`, `search`, `rerank`)
+- CLI interface for flexible operation (`ingest`, `search`, `rerank`, `csv-load`, `csv-match`)
 - Retrieval-Augmented Generation (RAG) mode for conversational answers
 - Set-aside and NAICS code filtering with top-N result limiting
 - Parallel ingestion for faster pulls from SAM.gov
@@ -131,7 +133,32 @@ Process only a single day's records:
 pipenv run python main.py --mode enrich --date 2025-06-17
 ```
 
-### 6. Solicitation Overview
+### 6. CSV Opportunity Matching (NEW!)
+
+Load opportunities from ContractOpportunitiesFullCSV.csv and find the best matches for your company using AI evaluation:
+
+#### Load CSV Data and Embed in Vector Store
+
+```bash
+pipenv run python main.py --mode csv-load --csv-file /path/to/ContractOpportunitiesFullCSV.csv
+```
+
+#### Find Matching Opportunities with AI Evaluation
+
+```bash
+pipenv run python main.py --mode csv-match \
+  --csv-file /path/to/ContractOpportunitiesFullCSV.csv \
+  --company-profile "I'm a Service Disabled Veteran owned small business with a focus in AI, ML, Software Architecture, and VAR opportunities related to software products. I'm mostly looking for set-asides that match my skillset" \
+  --top-k 5
+```
+
+This will:
+1. Load and embed all active opportunities from the CSV
+2. Use an LLM to evaluate each opportunity against your company profile
+3. Score opportunities based on set-aside match, capability alignment, NAICS relevance, competition level, contract value, and geographic fit
+4. Return the top-ranked opportunities with detailed AI analysis and actionable recommendations
+
+### 7. Solicitation Overview
 
 Summarize a single solicitation by its notice ID:
 
@@ -172,10 +199,20 @@ pipenv run pytest -q
 ## Example
 
 ```bash
+# Traditional SAM.gov API workflow
 pipenv run python main.py --mode ingest
 pipenv run python main.py --mode search --query "Cybersecurity support for government agencies"
 pipenv run python main.py --mode rerank --query "Cybersecurity support for government agencies"
 pipenv run python main.py --mode rag --query "Cybersecurity" --naics "541519" --setaside "Total Small Business Set-Aside (FAR 19.5)"
+
+# NEW: CSV opportunity matching workflow
+pipenv run python main.py --mode csv-load --csv-file ./ContractOpportunitiesFullCSV.csv
+pipenv run python main.py --mode csv-match \
+  --csv-file ./ContractOpportunitiesFullCSV.csv \
+  --company-profile "Service Disabled Veteran owned small business specializing in AI/ML software development and cloud solutions" \
+  --top-k 10
+
+# Solicitation details
 pipenv run python solicitation_overview.py 02aa3325308f491d959ba968898accd6
 ```
 
