@@ -25,12 +25,12 @@ class PreprocessTask(BaseTask):
 
             description = opp.get("description") or ""
             attachments_text = opp.get("attachmentText") or ""
-            title = opp.get("title", "Untitled")
-            solicitation_number = opp.get("solicitationNumber", "Unknown")
-            link = opp.get("uiLink", "")
-            naics = opp.get("naicsCode", "Unknown")
-            setaside = opp.get("typeOfSetAsideDescription", "None")
-            notice_id = opp.get("noticeId", "Unknown")
+            title = opp.get("title") or "Untitled"
+            solicitation_number = opp.get("solicitationNumber") or "Unknown"
+            link = opp.get("uiLink") or ""
+            naics = opp.get("naicsCode") or "Unknown"
+            setaside = opp.get("typeOfSetAsideDescription") or "None"
+            notice_id = opp.get("noticeId") or "Unknown"
 
             text = f"{description}\n\n{attachments_text}".strip()
 
@@ -40,7 +40,7 @@ class PreprocessTask(BaseTask):
                 "link": link,
                 "naics": naics,
                 "setaside": setaside,
-                "posted_date": opp.get("postedDate", "Unknown"),
+                "posted_date": opp.get("postedDate") or "Unknown",
                 "notice_id": notice_id,
                 "notice_type": opp.get("noticeType") or "",
                 "response_deadline": opp.get("responseDeadLine") or "",
