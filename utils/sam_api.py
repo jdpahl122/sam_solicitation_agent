@@ -57,7 +57,7 @@ class SamAPIClient:
 
     def search_opportunities(self, title=None, ptype=None, ncode=None, posted_from=None, posted_to=None, limit=100, max_workers=8):
         if not posted_from:
-            posted_from = (datetime.now() - timedelta(days=1)).strftime("%m/%d/%Y")
+            posted_from = (datetime.now() - timedelta(days=3)).strftime("%m/%d/%Y")
         if not posted_to:
             posted_to = datetime.now().strftime("%m/%d/%Y")
 

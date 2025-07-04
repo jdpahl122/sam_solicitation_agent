@@ -42,8 +42,8 @@ class PreprocessTask(BaseTask):
                 "setaside": setaside,
                 "posted_date": opp.get("postedDate", "Unknown"),
                 "notice_id": notice_id,
-                "notice_type": opp.get("noticeType"),
-                "response_deadline": opp.get("responseDeadLine"),
+                "notice_type": opp.get("noticeType") or "",
+                "response_deadline": opp.get("responseDeadLine") or "",
             }
 
             processed_docs.append({

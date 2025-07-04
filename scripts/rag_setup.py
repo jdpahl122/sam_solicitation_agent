@@ -113,13 +113,13 @@ def run() -> None:
 
             metadata = {
                 "notice_id": notice_id,
-                "title": record.get("title"),
-                "naics": record.get("naics") or record.get("naicsCode"),
-                "agency": record.get("agency"),
-                "setaside": record.get("setAsideCode"),
-                "response_deadline": record.get("responseDeadLine") or record.get("responseDeadline"),
-                "notice_type": record.get("noticeType"),
-                "link": record.get("uiLink") or record.get("url"),
+                "title": record.get("title") or "",
+                "naics": record.get("naics") or record.get("naicsCode") or "",
+                "agency": record.get("agency") or "",
+                "setaside": record.get("setAsideCode") or "",
+                "response_deadline": record.get("responseDeadLine") or record.get("responseDeadline") or "",
+                "notice_type": record.get("noticeType") or "",
+                "link": record.get("uiLink") or record.get("url") or "",
             }
 
             docs.append({"text": text_blob, "metadata": metadata})
@@ -132,8 +132,8 @@ def run() -> None:
 
     if docs:
         store = MilvusStore(
-            host=config.get("MILVUS_HOST", "localhost"),
-            port=config.get("MILVUS_PORT", "19530"),
+            host=config.get("MILVUS_HOST") or "localhost",
+            port=config.get("MILVUS_PORT") or "19530",
         )
         store.overwrite_documents(docs)
     else:
