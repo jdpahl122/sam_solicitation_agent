@@ -13,18 +13,13 @@ def ingest(config, store):
     agent = SolicitationAgent(config, store)
     agent.run()
 
-def search(store, query, k=20, setasides=None, naics_codes=None):
-    # Add debugging to check if store has data
+def search(store, query, k=10, setasides=None, naics_codes=None):
+    # Check if store has data
     try:
         from pymilvus import utility
         collection_exists = utility.has_collection(store.collection_name)
-        print(f"🔍 Collection '{store.collection_name}' exists: {collection_exists}")
         
-        # Try a broader search first to see if any data exists
-        test_results = store.index.similarity_search("contract opportunity", k=1)
-        print(f"🔍 Test search found {len(test_results)} documents in collection")
-        
-        if len(test_results) == 0:
+        if not collection_exists:
             print("⚠️ No documents found in vector store. You may need to:")
             print("   1. Run 'csv-load' mode first to load CSV data, or")
             print("   2. Run 'ingest' mode to load SAM.gov data")
@@ -36,16 +31,9 @@ def search(store, query, k=20, setasides=None, naics_codes=None):
     search_chain = SemanticSearchChain(store.index)
     results = search_chain.execute(query, k=k)
     
-    print(f"🔍 Initial search returned {len(results)} results before filtering")
-    
     if setasides:
         allowed = [sa.lower() for sa in setasides]
         original_count = len(results)
-        
-        # Debug: show what set-aside values are in the data BEFORE filtering
-        all_setasides = {d.metadata.get("setaside", "") or d.metadata.get("set_aside", "") for d in results}
-        print(f"🔍 All set-aside values in results: {all_setasides}")
-        print(f"🔍 Looking for set-aside terms: {allowed}")
         
         # Use partial matching for set-aside filtering
         def matches_setaside(doc):
@@ -58,11 +46,6 @@ def search(store, query, k=20, setasides=None, naics_codes=None):
         
         results = [d for d in results if matches_setaside(d)]
         print(f"🔍 After set-aside filtering: {len(results)} results (filtered out {original_count - len(results)})")
-        
-        # Debug: show what set-aside values were found after filtering
-        if results:
-            found_setasides = {d.metadata.get("setaside", "") or d.metadata.get("set_aside", "") for d in results}
-            print(f"🔍 Matching set-aside values: {found_setasides}")
     
     if naics_codes:
         allowed_naics = {code.strip() for code in naics_codes}
@@ -81,7 +64,7 @@ def rerank(store, query):
     print("\n✅ Top Recommended Opportunities:\n")
     print(top_5)
 
-def run_rag(query, api_key, setasides=None, naics_codes=None, k=20):
+def run_rag(query, api_key, setasides=None, naics_codes=None, k=10):
     rag = LlamaRAG("vector_store", api_key=api_key)
     docs = rag.retrieve_docs(query, k=k, setasides=setasides, naics_codes=naics_codes)
     print(f"\n✅ Top {len(docs)} Results:\n")
@@ -178,7 +161,7 @@ def main():
         if not args.query:
             print("❌ --query is required for search mode.")
             return
-        results = search(store, args.query, k=20, setasides=setaside_list, naics_codes=naics_list)
+        results = search(store, args.query, k=args.top_k, setasides=setaside_list, naics_codes=naics_list)
         print(f"\n✅ Top {len(results)} Search Results:\n")
         
         if not results:
@@ -215,7 +198,7 @@ def main():
             config["LLAMA_API_KEY"],
             setasides=setaside_list,
             naics_codes=naics_list,
-            k=20,
+            k=args.top_k,
         )
 
     elif args.mode == "enrich":
