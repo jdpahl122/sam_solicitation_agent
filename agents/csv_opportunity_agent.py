@@ -83,6 +83,38 @@ class CSVOpportunityAgent:
         # Find matching opportunities
         return self.find_matching_opportunities(company_profile, top_k)
     
+    def has_existing_data(self) -> bool:
+        """Check if the vector store has any existing data."""
+        try:
+            from pymilvus import utility
+            # Check if collection exists and has data
+            collection_exists = utility.has_collection(self.store.collection_name)
+            print(f"🔍 Collection '{self.store.collection_name}' exists: {collection_exists}")
+            
+            if not collection_exists:
+                return False
+            
+            # Try a simple search to see if there's any data
+            test_results = self.store.index.similarity_search("test", k=1)
+            has_data = len(test_results) > 0
+            print(f"🔍 Found {len(test_results)} documents in collection")
+            return has_data
+        except Exception as e:
+            print(f"⚠️ Error checking existing data: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
+    
+    def get_data_count(self) -> int:
+        """Get approximate count of documents in the vector store."""
+        try:
+            # Use a broad search to estimate document count
+            test_results = self.store.index.similarity_search("government contract opportunity", k=1000)
+            return len(test_results)
+        except Exception as e:
+            print(f"⚠️ Error getting data count: {e}")
+            return 0
+    
     def search_existing_opportunities(self, company_profile: str, top_k: int = 10) -> List[Dict]:
         """Search existing embedded opportunities without reloading."""
         return self.find_matching_opportunities(company_profile, top_k) 

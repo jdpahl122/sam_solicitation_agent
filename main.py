@@ -14,14 +14,62 @@ def ingest(config, store):
     agent.run()
 
 def search(store, query, k=20, setasides=None, naics_codes=None):
+    # Add debugging to check if store has data
+    try:
+        from pymilvus import utility
+        collection_exists = utility.has_collection(store.collection_name)
+        print(f"🔍 Collection '{store.collection_name}' exists: {collection_exists}")
+        
+        # Try a broader search first to see if any data exists
+        test_results = store.index.similarity_search("contract opportunity", k=1)
+        print(f"🔍 Test search found {len(test_results)} documents in collection")
+        
+        if len(test_results) == 0:
+            print("⚠️ No documents found in vector store. You may need to:")
+            print("   1. Run 'csv-load' mode first to load CSV data, or")
+            print("   2. Run 'ingest' mode to load SAM.gov data")
+            return []
+            
+    except Exception as e:
+        print(f"⚠️ Error checking collection: {e}")
+    
     search_chain = SemanticSearchChain(store.index)
     results = search_chain.execute(query, k=k)
+    
+    print(f"🔍 Initial search returned {len(results)} results before filtering")
+    
     if setasides:
-        allowed = {sa.lower() for sa in setasides}
-        results = [d for d in results if d.metadata.get("setaside", "").lower() in allowed]
+        allowed = [sa.lower() for sa in setasides]
+        original_count = len(results)
+        
+        # Debug: show what set-aside values are in the data BEFORE filtering
+        all_setasides = {d.metadata.get("setaside", "") or d.metadata.get("set_aside", "") for d in results}
+        print(f"🔍 All set-aside values in results: {all_setasides}")
+        print(f"🔍 Looking for set-aside terms: {allowed}")
+        
+        # Use partial matching for set-aside filtering
+        def matches_setaside(doc):
+            # Check both field names: setaside (SAM.gov) and set_aside (CSV)
+            setaside_value = doc.metadata.get("setaside", "") or doc.metadata.get("set_aside", "")
+            if not setaside_value:
+                return False
+            setaside_lower = setaside_value.lower()
+            return any(allowed_term in setaside_lower for allowed_term in allowed)
+        
+        results = [d for d in results if matches_setaside(d)]
+        print(f"🔍 After set-aside filtering: {len(results)} results (filtered out {original_count - len(results)})")
+        
+        # Debug: show what set-aside values were found after filtering
+        if results:
+            found_setasides = {d.metadata.get("setaside", "") or d.metadata.get("set_aside", "") for d in results}
+            print(f"🔍 Matching set-aside values: {found_setasides}")
+    
     if naics_codes:
         allowed_naics = {code.strip() for code in naics_codes}
-        results = [d for d in results if d.metadata.get("naics") in allowed_naics]
+        original_count = len(results)
+        results = [d for d in results if d.metadata.get("naics") in allowed_naics or d.metadata.get("naics_code") in allowed_naics]
+        print(f"🔍 After NAICS filtering: {len(results)} results (filtered out {original_count - len(results)})")
+    
     return results[:k]
 
 def rerank(store, query):
@@ -132,15 +180,24 @@ def main():
             return
         results = search(store, args.query, k=20, setasides=setaside_list, naics_codes=naics_list)
         print(f"\n✅ Top {len(results)} Search Results:\n")
+        
+        if not results:
+            print("❌ No results found. Try:")
+            print("   • Using different search terms")
+            print("   • Removing set-aside or NAICS filters")
+            print("   • Running csv-load mode first if searching CSV data")
+            print("   • Running ingest mode first if searching SAM.gov data")
+        
         for i, doc in enumerate(results, 1):
             meta = doc.metadata
             print(f"--- [{i}] ---")
             print(f"Title: {meta.get('title')}")
-            print(f"Solicitation #: {meta.get('solicitation_number')}")
+            print(f"Solicitation #: {meta.get('solicitation_number') or meta.get('sol_number')}")
             print(f"Posted: {meta.get('posted_date')}")
             print(f"Link: {meta.get('link')}")
-            print(f"NAICS: {meta.get('naics')}")
-            print(f"Set-Aside: {meta.get('setaside')}")
+            print(f"NAICS: {meta.get('naics') or meta.get('naics_code')}")
+            print(f"Set-Aside: {meta.get('setaside') or meta.get('set_aside')}")
+            print(f"Department: {meta.get('department')}")
             print()
 
     elif args.mode == "rerank":
@@ -236,18 +293,24 @@ def main():
         print("🎯 Finding opportunities that match your company profile...")
         csv_agent = CSVOpportunityAgent(args.csv_file, store)
         
-        # Check if we should load fresh data or use existing
-        try:
-            # Try to search existing data first
+        # Force search of existing data only - don't reload CSV
+        print("🔍 Checking for existing embeddings in vector store...")
+        
+        if csv_agent.has_existing_data():
+            data_count = csv_agent.get_data_count()
+            print(f"📊 Found existing data in vector store (approximately {data_count} opportunities)")
+            print("🎯 Searching existing embeddings (not reloading CSV)...")
+            
             results = csv_agent.search_existing_opportunities(args.company_profile, args.top_k)
             if not results:
-                # If no results, load fresh data
-                print("📂 No existing data found, loading fresh opportunities...")
-                results = csv_agent.run_full_pipeline(args.company_profile, args.top_k)
-        except Exception as e:
-            print(f"⚠️ Error searching existing data: {e}")
-            print("📂 Loading fresh opportunities...")
-            results = csv_agent.run_full_pipeline(args.company_profile, args.top_k)
+                print("⚠️ No opportunities matched your company profile in the existing data.")
+                print("💡 Try adjusting your company profile, using different keywords, or run csv-load first.")
+                return
+        else:
+            print("❌ No existing data found in vector store.")
+            print("💡 Please run the following command first to load data:")
+            print(f"   pipenv run python main.py --mode csv-load --csv-file {args.csv_file}")
+            return
         
         if results:
             print(f"\n🎯 Top {len(results)} Matching Opportunities:\n")
