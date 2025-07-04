@@ -83,11 +83,87 @@ def run_rag(query, api_key, setasides=None, naics_codes=None, k=10):
     print("\n📄 RAG-Enhanced Response:\n")
     print(response)
 
+def search_aayeaye_capabilities(store, k=10):
+    """Search for opportunities matching AAyeAye LLC's capabilities statement."""
+    print("🔍 Searching for opportunities matching AAyeAye LLC capabilities...")
+    
+    # AAyeAye LLC NAICS codes and capabilities
+    naics_codes = ["541715", "541511", "541712", "541519", "541690"]
+    
+    # Technical capabilities query
+    capabilities_query = (
+        "machine learning MLOps artificial intelligence software development "
+        "data engineering computer systems design scientific consulting research development "
+        "infrastructure automation streaming data pipelines model monitoring "
+        "kubernetes cloud native platforms"
+    )
+    
+    print(f"🎯 NAICS Codes: {', '.join(naics_codes)}")
+    print(f"🔍 Technical Query: {capabilities_query}")
+    
+    # Search for small business opportunities
+    print("\n--- SMALL BUSINESS OPPORTUNITIES ---")
+    sb_results = search(store, capabilities_query, k=k, setasides=["small business"], naics_codes=naics_codes)
+    
+    if sb_results:
+        print(f"✅ Found {len(sb_results)} Small Business opportunities:")
+        for i, doc in enumerate(sb_results, 1):
+            meta = doc.metadata
+            print(f"--- [{i}] ---")
+            print(f"Title: {meta.get('title')}")
+            print(f"Solicitation #: {meta.get('solicitation_number') or meta.get('sol_number')}")
+            print(f"NAICS: {meta.get('naics') or meta.get('naics_code')}")
+            print(f"Set-Aside: {meta.get('setaside') or meta.get('set_aside')}")
+            print(f"Department: {meta.get('department')}")
+            print(f"Link: {meta.get('link')}")
+            print()
+    else:
+        print("❌ No Small Business opportunities found")
+    
+    # Search for SDVOSB opportunities (for when certification is complete)
+    print("\n--- SDVOSB OPPORTUNITIES (For Future Reference) ---")
+    sdvosb_results = search(store, capabilities_query, k=k, setasides=["veteran"], naics_codes=naics_codes)
+    
+    if sdvosb_results:
+        print(f"✅ Found {len(sdvosb_results)} SDVOSB opportunities:")
+        for i, doc in enumerate(sdvosb_results, 1):
+            meta = doc.metadata
+            print(f"--- [{i}] ---")
+            print(f"Title: {meta.get('title')}")
+            print(f"Solicitation #: {meta.get('solicitation_number') or meta.get('sol_number')}")
+            print(f"NAICS: {meta.get('naics') or meta.get('naics_code')}")
+            print(f"Set-Aside: {meta.get('setaside') or meta.get('set_aside')}")
+            print(f"Department: {meta.get('department')}")
+            print(f"Link: {meta.get('link')}")
+            print()
+    else:
+        print("❌ No SDVOSB opportunities found")
+    
+    # Search for unrestricted opportunities in your NAICS codes
+    print("\n--- UNRESTRICTED OPPORTUNITIES ---")
+    unrestricted_results = search(store, capabilities_query, k=k, naics_codes=naics_codes)
+    
+    if unrestricted_results:
+        print(f"✅ Found {len(unrestricted_results)} total opportunities in your NAICS codes:")
+        for i, doc in enumerate(unrestricted_results, 1):
+            meta = doc.metadata
+            set_aside = meta.get('setaside') or meta.get('set_aside') or "None"
+            print(f"--- [{i}] ---")
+            print(f"Title: {meta.get('title')}")
+            print(f"Solicitation #: {meta.get('solicitation_number') or meta.get('sol_number')}")
+            print(f"NAICS: {meta.get('naics') or meta.get('naics_code')}")
+            print(f"Set-Aside: {set_aside}")
+            print(f"Department: {meta.get('department')}")
+            print(f"Link: {meta.get('link')}")
+            print()
+    else:
+        print("❌ No opportunities found in your NAICS codes")
+
 def main():
     parser = argparse.ArgumentParser(description="SAM Solicitation Agent CLI")
     parser.add_argument(
         "--mode",
-        choices=["ingest", "search", "rerank", "rag", "enrich", "ragsetup", "csv-load", "csv-match"],
+        choices=["ingest", "search", "rerank", "rag", "enrich", "ragsetup", "csv-load", "csv-match", "aayeaye"],
         required=True,
         help="Mode to run",
     )
@@ -320,6 +396,9 @@ def main():
                 print("\n" + "=" * 80)
         else:
             print("❌ No matching opportunities found")
+
+    elif args.mode == "aayeaye":
+        search_aayeaye_capabilities(store, k=args.top_k)
 
 if __name__ == "__main__":
     main()
